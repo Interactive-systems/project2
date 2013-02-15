@@ -19,7 +19,8 @@ import com.google.android.gms.maps.model.LatLng;
 public class MainActivity extends FragmentActivity implements LocationListener {
 
 	GoogleMap googleMap;
-
+	private LocationManager mLocManager;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -40,15 +41,15 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 			googleMap = fm.getMap();
 			googleMap.setMyLocationEnabled(true);
 
-			LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+			mLocManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 			Criteria criteria = new Criteria();
-			String provider = locationManager.getBestProvider(criteria, true);
-			Location location = locationManager.getLastKnownLocation(provider);
+			String provider = mLocManager.getBestProvider(criteria, true);
+			Location location = mLocManager.getLastKnownLocation(provider);
 
 			if (location != null) {
 				onLocationChanged(location);
 			}
-			locationManager.requestLocationUpdates(provider, 20000, 0, this);
+			mLocManager.requestLocationUpdates(provider, 20000, 0, this);
 		}	 
 	}
 
@@ -74,5 +75,11 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 
 	@Override
 	public void onStatusChanged(String provider, int status, Bundle extras) {
+	}
+	
+	@Override
+	public void onDestroy() {
+		mLocManager.removeUpdates(this);
+		super.onDestroy();
 	}
 } 
