@@ -36,7 +36,6 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 			dialog.show();
 		} 
 		else { //Google Play Services are available
-
 			SupportMapFragment fm = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
 			googleMap = fm.getMap();
 			googleMap.setMyLocationEnabled(true);
