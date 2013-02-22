@@ -1,10 +1,17 @@
 package com.cs.helsinki.fi.interactivesystems;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.List;
 
 import android.app.Dialog;
+import android.app.ProgressDialog;
+import android.content.Context;
 import android.location.Address;
 import android.location.Criteria;
 import android.location.Geocoder;
@@ -14,9 +21,8 @@ import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
-import android.util.Log;
+import android.util.Base64;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
@@ -31,7 +37,12 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 	GoogleMap googleMap;
 	MarkerOptions markerOptions;
 	LatLng latLng;
+	ProgressDialog mProgressDialog;
+	XMLParser xmlParser;
+	CredentialsReader credenatialsReader;
 	private LocationManager mLocManager;
+
+	private static final String FILE_NAME = "database.xml";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -48,7 +59,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 			dialog.show();
 		} 
 		else { //Google Play Services are available
-
+			
 			//set up the map component
 			SupportMapFragment fm = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
 			googleMap = fm.getMap();
@@ -63,19 +74,42 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 				onLocationChanged(location);
 			}
 			mLocManager.requestLocationUpdates(provider, 20000, 0, this); //receive location updates
+			
+			//TODO add parsing functionality
+			//xmlParser = new XMLParser(this);
+			
+			//Read credentials from file
+			credenatialsReader = new CredentialsReader(this);
+			credenatialsReader.readCredentials();
 
+			//if the file does not exists, we need to download it
+			if (!checkIfDatabaseExists()) {
+				
+				//Show a progress dialog while downloading the database file
+				mProgressDialog = new ProgressDialog(MainActivity.this);
+				mProgressDialog.setMessage("Please wait");
+				mProgressDialog.setIndeterminate(false);
+				mProgressDialog.setMax(100);
+				mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+				
+				DownloadFile downloadFile = new DownloadFile();
+				downloadFile.execute("");
+			}
+			
+			/*
 			//parse the xml file for real addresses and add the to the arrayList
 			ArrayList<String> addresses = new ArrayList<String>();
 			addresses.add("Jõe 1, Põltsamaa linn, Jõgevamaa"); //for testing
 			addresses.add("Vahtra  17-3, Kohtla-Järve linn, Ida-Virumaa, 30323"); //for testing
 			addresses.add("Kõidama küla, Suure-Jaani vald, Viljandimaa, 71504"); //for testing
-			
+
 			//get the geocodes for the addresses
 			if (addresses != null && addresses.size() > 0) {
 				for (int i = 0; i < addresses.size(); i++) {
 					new getGeocodeTask().execute(addresses.get(i));
 				}
 			}
+			 */
 		}	 
 	}
 
@@ -106,7 +140,28 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 	@Override
 	public void onDestroy() {
 		mLocManager.removeUpdates(this);
+		
 		super.onDestroy();
+	}
+
+	private boolean checkIfDatabaseExists() {
+		FileInputStream input = null;
+		try {
+			input = openFileInput(FILE_NAME);
+			input.close();
+		}
+
+		catch (FileNotFoundException e) {
+			e.printStackTrace();
+			return false;
+		}
+
+		catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -138,14 +193,14 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 
 			for (int i = 0; i < addresses.size(); i++) {
 				//add the marker and text for each marker
-				
+
 				Address address = (Address) addresses.get(i);
 
 				latLng = new LatLng(address.getLatitude(), address.getLongitude());
-				
+
 				String text = String.format("%s, %s",
-		                address.getMaxAddressLineIndex() > 0 ? address.getAddressLine(0) : "",
-		                address.getCountryName());
+						address.getMaxAddressLineIndex() > 0 ? address.getAddressLine(0) : "",
+								address.getCountryName());
 
 				markerOptions = new MarkerOptions();
 				markerOptions.position(latLng);
@@ -155,4 +210,61 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 			}
 		}
 	}
-} 
+
+	/**
+	 * This class is used for downloading the database file from the server.
+	 */
+	private class DownloadFile extends AsyncTask<String, Integer, String> {
+		@Override
+		protected String doInBackground(String... sUrl) {
+			try {
+				//set up the connection
+				final URL url = new URL(credenatialsReader.getAddress());
+				final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+				final String auth = new String(credenatialsReader.getUsername() + ":" + credenatialsReader.getPassword());
+				connection.setRequestProperty("Authorization", "Basic " + Base64.encodeToString(auth.getBytes(), Base64.URL_SAFE));
+				connection.setUseCaches(false);
+				connection.setConnectTimeout(5000);
+				connection.setDoOutput(true);
+				connection.connect();
+
+				//get the file size
+				int fileLength = connection.getContentLength();
+
+				//specify where to save it
+				FileOutputStream f = openFileOutput(FILE_NAME, Context.MODE_PRIVATE);
+
+				InputStream in = connection.getInputStream();
+
+				byte[] buffer = new byte[1024];
+				int len1 = 0;
+				long total = 0;
+
+				//write the file to disk
+				while ((len1 = in.read(buffer)) > 0) {
+					total += len1; //total = total + len1
+					publishProgress((int)((total*100)/fileLength));
+					f.write(buffer, 0, len1);
+				}
+				f.close();
+				in.close();
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return null;
+		}
+
+		@Override
+		protected void onPreExecute() {
+			super.onPreExecute();
+			mProgressDialog.show();
+		}
+
+		@Override
+		protected void onProgressUpdate(Integer... progress) {
+			super.onProgressUpdate(progress);
+			mProgressDialog.setProgress(progress[0]);
+		}
+	} 
+}
