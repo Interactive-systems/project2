@@ -22,6 +22,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.util.Base64;
+import android.util.Log;
 import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -59,7 +60,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 			dialog.show();
 		} 
 		else { //Google Play Services are available
-			
+
 			//set up the map component
 			SupportMapFragment fm = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
 			googleMap = fm.getMap();
@@ -74,42 +75,31 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 				onLocationChanged(location);
 			}
 			mLocManager.requestLocationUpdates(provider, 20000, 0, this); //receive location updates
-			
+
 			//TODO add parsing functionality
-			//xmlParser = new XMLParser(this);
-			
+			xmlParser = new XMLParser(this);
+
 			//Read credentials from file
 			credenatialsReader = new CredentialsReader(this);
 			credenatialsReader.readCredentials();
 
 			//if the file does not exists, we need to download it
 			if (!checkIfDatabaseExists()) {
-				
+
 				//Show a progress dialog while downloading the database file
 				mProgressDialog = new ProgressDialog(MainActivity.this);
 				mProgressDialog.setMessage("Please wait");
 				mProgressDialog.setIndeterminate(false);
 				mProgressDialog.setMax(100);
 				mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-				
+
 				DownloadFile downloadFile = new DownloadFile();
 				downloadFile.execute("");
 			}
-			
-			/*
-			//parse the xml file for real addresses and add the to the arrayList
-			ArrayList<String> addresses = new ArrayList<String>();
-			addresses.add("Jõe 1, Põltsamaa linn, Jõgevamaa"); //for testing
-			addresses.add("Vahtra  17-3, Kohtla-Järve linn, Ida-Virumaa, 30323"); //for testing
-			addresses.add("Kõidama küla, Suure-Jaani vald, Viljandimaa, 71504"); //for testing
-
-			//get the geocodes for the addresses
-			if (addresses != null && addresses.size() > 0) {
-				for (int i = 0; i < addresses.size(); i++) {
-					new getGeocodeTask().execute(addresses.get(i));
-				}
+			//else we can start parsing the data
+			else {
+				startXmlParsing();
 			}
-			 */
 		}	 
 	}
 
@@ -120,8 +110,8 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 		double longitude = location.getLongitude();
 		LatLng latLng = new LatLng(latitude, longitude);
 
-		googleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-		googleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+		//googleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+		//googleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
 		tvLocation.setText("Latitude:" +  latitude  + ", Longitude:"+ longitude );
 	}
 
@@ -140,7 +130,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 	@Override
 	public void onDestroy() {
 		mLocManager.removeUpdates(this);
-		
+
 		super.onDestroy();
 	}
 
@@ -163,6 +153,34 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 
 		return true;
 	}
+	
+	private void startXmlParsing() {
+		FileInputStream input = null;
+		try {
+			input = openFileInput(FILE_NAME);
+			List<Entry> list = xmlParser.parse(input);
+			
+			if (input != null) {
+				input.close();
+			}
+			
+			xmlParser.printContents(list);
+						
+			//get the geocodes for the addresses
+			if (list != null && list.size() > 0) {
+				for (int i = 0; i < list.size(); i++) {
+					Entry e = list.get(i);
+					
+					if (e != null && e.getAddress() != null) {
+						new getGeocodeTask().execute(e.getAddress());
+					}
+				}
+			}
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
 	/**
 	 * This class is used for fetching the geocode data from human readable address and for drawing markers
@@ -180,7 +198,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-
+			
 			return addresses;
 		}
 
@@ -188,6 +206,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 		protected void onPostExecute(List<Address> addresses) {
 			//if no results were found
 			if (addresses == null || addresses.size() == 0) {
+				Log.d("test", "no results on onPostExecute");
 				return;
 			}
 
@@ -265,6 +284,15 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 		protected void onProgressUpdate(Integer... progress) {
 			super.onProgressUpdate(progress);
 			mProgressDialog.setProgress(progress[0]);
+		}
+
+		@Override
+		protected void onPostExecute(String s) {
+			super.onPostExecute(s);
+
+			mProgressDialog.dismiss();
+
+			startXmlParsing();
 		}
 	} 
 }
