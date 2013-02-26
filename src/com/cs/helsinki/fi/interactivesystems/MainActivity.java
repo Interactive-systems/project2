@@ -12,6 +12,7 @@ import java.util.List;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.location.Address;
 import android.location.Criteria;
 import android.location.Geocoder;
@@ -44,6 +45,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 	private LocationManager mLocManager;
 
 	private static final String FILE_NAME = "database.xml";
+	public static final String PREFS_NAME = "MyPrefsFile";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -72,11 +74,16 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 			Location location = mLocManager.getLastKnownLocation(provider);
 
 			if (location != null) {
+				double latitude = location.getLatitude();
+				double longitude = location.getLongitude();
+				LatLng latLng = new LatLng(latitude, longitude);
+				googleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+				googleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+
 				onLocationChanged(location);
 			}
 			mLocManager.requestLocationUpdates(provider, 20000, 0, this); //receive location updates
 
-			//TODO add parsing functionality
 			xmlParser = new XMLParser(this);
 
 			//Read credentials from file
@@ -99,7 +106,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 			//else we can start parsing the data
 			else {
 				startXmlParsing();
-			}
+			}			
 		}	 
 	}
 
@@ -110,8 +117,6 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 		double longitude = location.getLongitude();
 		LatLng latLng = new LatLng(latitude, longitude);
 
-		//googleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-		//googleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
 		tvLocation.setText("Latitude:" +  latitude  + ", Longitude:"+ longitude );
 	}
 
@@ -134,6 +139,93 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 		super.onDestroy();
 	}
 
+	private String getSavedCoordinates(String address) {
+		SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+		String coordinates = settings.getString(address, "");
+		return coordinates;
+	}
+
+	private boolean checkIfCoordinatesHaveBeenSaved(String address) {
+		SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+		String coordinates = settings.getString(address, "");
+
+		if (coordinates == null || coordinates.equals("")) {
+			return false;
+		}
+		else {
+			return true;
+		}
+	}
+
+	/**
+	 * Save the coordinates to the internal storage
+	 * 
+	 * @param address
+	 */
+	
+	private void saveCoordinates(Address address) {
+		SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+		SharedPreferences.Editor editor = settings.edit();
+
+		//save the coordinates as a string using comma as the separator
+		String coordinateString = "" + address.getLatitude() + "," + address.getLongitude();
+		//save the address info
+		String addressString = address.getAddressLine(0) + ", " + address.getSubAdminArea() + ", " + address.getThoroughfare();
+
+		editor.putString(addressString, coordinateString);
+
+		editor.commit();
+	}
+
+	/**
+	 * Parse the latitude info from the string  
+	 * @param coordinates
+	 * @return
+	 */
+	private double parseLatitude(String coordinates) {
+		String latString = coordinates.substring(0, coordinates.indexOf(",") - 2);
+
+		try {
+			return Double.valueOf(latString);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			return -1;
+		}
+	}
+
+	/**
+	 * Parse the longitude info from the string
+	 * @param coordinates
+	 * @return
+	 */
+	private double parseLongitude(String coordinates) {
+		String lonString = coordinates.substring(coordinates.indexOf(",") + 1);
+
+		try {
+			return Double.valueOf(lonString);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			return -1;
+		}
+	}
+
+	private void createMarker(String address, String coordinates) {
+		latLng = new LatLng(parseLatitude(coordinates), parseLongitude(coordinates));
+
+		//String text = String.format("%s, %s",
+		//		address.getMaxAddressLineIndex() > 0 ? address.getAddressLine(0) : "",
+		//				address.getCountryName());
+		String text = address;
+
+		markerOptions = new MarkerOptions();
+		markerOptions.position(latLng);
+		markerOptions.title(text);
+
+		googleMap.addMarker(markerOptions);
+	}
+
 	private boolean checkIfDatabaseExists() {
 		FileInputStream input = null;
 		try {
@@ -153,26 +245,30 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 
 		return true;
 	}
-	
+
 	private void startXmlParsing() {
 		FileInputStream input = null;
 		try {
 			input = openFileInput(FILE_NAME);
 			List<Entry> list = xmlParser.parse(input);
-			
+
 			if (input != null) {
 				input.close();
 			}
-			
-			xmlParser.printContents(list);
-						
+
 			//get the geocodes for the addresses
 			if (list != null && list.size() > 0) {
 				for (int i = 0; i < list.size(); i++) {
 					Entry e = list.get(i);
-					
+
 					if (e != null && e.getAddress() != null) {
-						new getGeocodeTask().execute(e.getAddress());
+						//if the coordinates have been saved to internal storage already, fetch them from there
+						if (checkIfCoordinatesHaveBeenSaved(e.getAddress())) {
+							createMarker(e.getAddress(), getSavedCoordinates(e.getAddress()));
+						}
+						else { //no coordinates found, so we need to use geocoding
+							new getGeocodeTask().execute(e.getAddress());
+						}
 					}
 				}
 			}
@@ -198,7 +294,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			
+
 			return addresses;
 		}
 
@@ -217,6 +313,9 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 
 				latLng = new LatLng(address.getLatitude(), address.getLongitude());
 
+				//save the address info to internal storage
+				saveCoordinates(address);
+				
 				String text = String.format("%s, %s",
 						address.getMaxAddressLineIndex() > 0 ? address.getAddressLine(0) : "",
 								address.getCountryName());
