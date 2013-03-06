@@ -3,6 +3,7 @@ package com.cs.helsinki.fi.interactivesystems;
 public class Entry {
 	
 	public final String job; //nimetus
+	public final String id; //id
 	public final String isco; //isco //loomakasvatuse töötaja
 	public final String ametValdkond; //ametValdkond //taimekasvatus, loomakasvatus, aiandus
 	public final String tasks; //tooylesanded
@@ -25,7 +26,7 @@ public class Entry {
 	public final String phone; //telefon
 	public final String education; //haridusTase
 	
-	public Entry(String job, String isco, String ametValdkond, String tasks,
+	public Entry(String job, String id, String isco, String ametValdkond, String tasks,
 			String requirements, String training, String applicationDate,
 			String country, String county, String locality, String address,
 			String employer, String contact, String email, String jobLength,
@@ -33,6 +34,7 @@ public class Entry {
 			String moreInfo, String phone, String education) {
 		
 		this.job = job;
+		this.id = id;
 		this.isco = isco;
 		this.ametValdkond = ametValdkond;
 		this.tasks = tasks;
@@ -60,6 +62,10 @@ public class Entry {
 		return job;
 	}
 
+	public String getId() {
+	    return id;
+	}
+	
 	public String getIsco() {
 		return isco;
 	}

@@ -68,6 +68,7 @@ public class XMLParser {
 		parser.require(XmlPullParser.START_TAG, ns, "toopakkumine");
 	
 		String job = null;
+		String id = null;
 		String isco = null;
 		String ametValdkond = null;
 		String tasks = null;
@@ -96,209 +97,64 @@ public class XMLParser {
 			}
 			String name = parser.getName();
 			if (name.equals("nimetus")) {
-				job = readJob(parser);
+				job = readValue(parser, "nimetus");
+			} else if (name.equals("id")) {
+			    id = readValue(parser, "id");
 			} else if (name.equals("isco")) {
-				isco = readIsco(parser);
+				isco = readValue(parser, "isco");
 			} else if (name.equals("ametValdkond")) {
-				ametValdkond = readAmetValdkond(parser);
+				ametValdkond = readValue(parser, "ametValdkond");
 			} else if (name.equals("tooylesanded")) {
-				tasks = readTasks(parser);
+				tasks = readValue(parser, "tooylesanded");
 			} else if (name.equals("requirements")) {
-				requirements = readRequirements(parser);
+				requirements = readValue(parser, "requirements");
 			} else if (name.equals("training")) {
-				training = readTraining(parser);
+				training = readValue(parser, "training");
 			} else if (name.equals("applicationDate")) {
-				applicationDate = readApplicationDate(parser);
+				applicationDate = readValue(parser, "applicationDate");
 			} else if (name.equals("riik")) {
-				country = readCountry(parser);
+				country = readValue(parser, "riik");
 			} else if (name.equals("maakond")) {
-				county = readCounty(parser);
+				county = readValue(parser, "maakond");
 			} else if (name.equals("asula")) {
-				locality = readLocality(parser);
+				locality = readValue(parser, "asula");
 			} else if (name.equals("aadress")) {
-				address = readAddress(parser);
+				address = readValue(parser, "aadress");
 			} else if (name.equals("tooandja")) {
-				employer = readEmployer(parser);
+				employer = readValue(parser, "tooandja");
 			} else if (name.equals("kontaktisik")) {
-				contact = readContact(parser);
+				contact = readValue(parser, "kontaktisik");
 			} else if (name.equals("email")) {
-				email = readEmail(parser);
+				email = readValue(parser, "email");
 			} else if (name.equals("toosuhteKestus")) {
-				jobLength = readJobLength(parser);
+				jobLength = readValue(parser, "toosuhteKestus");
 			} else if (name.equals("tookogemus")) {
-				experience = readExperience(parser);
+				experience = readValue(parser, "tookogemus");
 			} else if (name.equals("tooaeg")) {
-				hours = readHours(parser);
+				hours = readValue(parser, "tooaeg");
 			} else if (name.equals("tootasuTyyp")) {
-				salary = readSalary(parser);
+				salary = readValue(parser, "tootasuTyyp");
 			} else if (name.equals("lisamiseAeg")) {
-				dateAdded = readDateAdded(parser);
+				dateAdded = readValue(parser, "lisamiseAeg");
 			} else if (name.equals("lisainfo")) {
-				moreInfo = readMoreInfo(parser);
+				moreInfo = readValue(parser, "lisainfo");
 			} else if (name.equals("telefon")) {
-				phone = readPhone(parser);
+				phone = readValue(parser, "telefon");
 			} else if (name.equals("haridusTase")) {
-				education = readEducation(parser);
+				education = readValue(parser, "haridusTase");
 			} else {
 				skip(parser);
 			}
 		}
-		return new Entry(job, isco, ametValdkond, tasks, requirements, training, applicationDate, country, county, locality,
+		return new Entry(job, id, isco, ametValdkond, tasks, requirements, training, applicationDate, country, county, locality,
 				address, employer, contact, email, jobLength, experience, hours, salary, dateAdded, moreInfo, phone, education);
 	}
 	
-	private String readIsco(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "isco");
-		String isco = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "isco");
-		return isco;
-	}
-
-	private String readJob(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "nimetus");
-		String job = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "nimetus");
-		return job;
-	}
-
-	private String readAmetValdkond(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "ametValdkond");
-		String ametValdkond = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "ametValdkond");
-		return ametValdkond;
-	}
-	
-	private String readTasks(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "tooylesanded");
-		String tasks = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "tooylesanded");
-		return tasks;
-	}
-	
-	private String readRequirements(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "requirements");
-		String requirements = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "requirements");
-		return requirements;
-	}
-	
-	private String readTraining(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "training");
-		String training = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "training");
-		return training;
-	}
-	
-	private String readApplicationDate(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "applicationDate");
-		String applicationDate = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "applicationDate");
-		return applicationDate;
-	}
-	
-	private String readCountry(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "riik");
-		String country = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "riik");
-		return country;
-	}
-	
-	private String readCounty(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "maakond");
-		String county = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "maakond");
-		return county;
-	}
-	
-	private String readLocality(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "asula");
-		String locality = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "asula");
-		return locality;
-	}
-	
-	private String readAddress(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "aadress");
-		String address = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "aadress");
-		return address;
-	}
-	
-	private String readEmployer(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "tooandja");
-		String employer = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "tooandja");
-		return employer;
-	}
-	
-	private String readContact(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "kontaktisik");
-		String contact = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "kontaktisik");
-		return contact;
-	}
-	
-	private String readEmail(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "email");
-		String email = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "email");
-		return email;
-	}
-	
-	private String readJobLength(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "toosuhteKestus");
-		String jobLength = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "toosuhteKestus");
-		return jobLength;
-	}
-	
-	private String readExperience(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "tookogemus");
-		String experience = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "tookogemus");
-		return experience;
-	}
-	
-	private String readHours(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "tooaeg");
-		String hours = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "tooaeg");
-		return hours;
-	}
-	
-	private String readSalary(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "tootasuTyyp");
-		String salary = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "tootasuTyyp");
-		return salary;
-	}
-	
-	private String readDateAdded(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "lisamiseAeg");
-		String dateAdded = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "lisamiseAeg");
-		return dateAdded;
-	}
-	
-	private String readMoreInfo(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "lisainfo");
-		String moreInfo = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "lisainfo");
-		return moreInfo;
-	}
-	
-	private String readPhone(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "telefon");
-		String phone = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "telefon");
-		return phone;
-	}
-	
-	private String readEducation(XmlPullParser parser) throws IOException, XmlPullParserException {
-		parser.require(XmlPullParser.START_TAG, ns, "haridusTase");
-		String education = readText(parser);
-		parser.require(XmlPullParser.END_TAG, ns, "haridusTase");
-		return education;
+	private String readValue(XmlPullParser parser, String tagName) throws IOException, XmlPullParserException {
+	    parser.require(XmlPullParser.START_TAG, ns, tagName);
+	    String value = readText(parser);
+	    parser.require(XmlPullParser.END_TAG, ns, tagName);
+	    return value;
 	}
 
 	// For the tags title and summary, extracts their text values.
