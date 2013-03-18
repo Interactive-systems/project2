@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+	android:minHeight="?android:attr/listPreferredItemHeight" >
+    
+    <ImageView
+        android:id="@+id/map_icon"
+        android:src="@drawable/map"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:paddingLeft="5dip"
+        android:paddingRight="5dip"
+        android:background="@drawable/selected_state"/>
+    
+    <View
+        android:layout_width="1dip"
+        android:layout_height="match_parent"
+        android:background="@android:color/darker_gray"
+        android:layout_marginTop="5dip"
+        android:layout_marginBottom="5dip"/>
+    
+	<TextView
+		android:id="@+id/title"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:padding="10dip"
+		style="@android:style/TextAppearance.Medium.Inverse"
+        android:background="@drawable/selected_state"/>	
+</LinearLayout>

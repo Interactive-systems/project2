@@ -4,5 +4,9 @@
     <string name="app_name">InterAct</string>
     <string name="menu_settings">Settings</string>
     <string name="hello_world">Hello world!</string>
+    <string name="bookmark_list_title">Bookmarks</string>
+    <string name="bookmark_empty_list">There are no bookmarks</string>
+    <string name="clear_bookmarks">Clear bookmarks</string>
+    <string name="exit_bookmark_list">Return to map</string>
 
 </resources>

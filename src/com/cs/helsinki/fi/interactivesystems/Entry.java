@@ -1,6 +1,9 @@
 package com.cs.helsinki.fi.interactivesystems;
 
-public class Entry {
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class Entry implements Parcelable {
 	
 	public final String job; //nimetus
 	public final String id; //id
@@ -57,6 +60,32 @@ public class Entry {
 		this.phone = phone;
 		this.education = education;
 	}
+	
+    private Entry(Parcel in) {
+        this.job = in.readString();
+        this.id = in.readString();
+        this.isco = in.readString();
+        this.ametValdkond = in.readString();
+        this.tasks = in.readString();
+        this.requirements = in.readString();
+        this.training = in.readString();
+        this.applicationDate = in.readString();
+        this.country = in.readString();
+        this.county = in.readString();
+        this.locality = in.readString();
+        this.address = in.readString();
+        this.employer = in.readString();
+        this.contact = in.readString();
+        this.email = in.readString();
+        this.jobLength = in.readString();
+        this.experience = in.readString();
+        this.hours = in.readString();
+        this.salary = in.readString();
+        this.dateAdded = in.readString();
+        this.moreInfo = in.readString();
+        this.phone = in.readString();
+        this.education = in.readString();
+    }
 
 	public String getJob() {
 		return job;
@@ -149,4 +178,49 @@ public class Entry {
 	public String getEducation() {
 		return education;
 	}
+
+	// not needed but must be overridden
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    // flatten Entry object into a Parcel
+    @Override
+    public void writeToParcel(Parcel out, int flags) {
+        out.writeString(job);
+        out.writeString(id);
+        out.writeString(isco);
+        out.writeString(ametValdkond);
+        out.writeString(tasks);
+        out.writeString(requirements);
+        out.writeString(training);
+        out.writeString(applicationDate);
+        out.writeString(country);
+        out.writeString(county);
+        out.writeString(locality);
+        out.writeString(address);
+        out.writeString(employer);
+        out.writeString(contact);
+        out.writeString(email);
+        out.writeString(jobLength);
+        out.writeString(experience);
+        out.writeString(hours);
+        out.writeString(salary);
+        out.writeString(dateAdded);
+        out.writeString(moreInfo);
+        out.writeString(phone);
+        out.writeString(education);
+    }
+    
+    // generate Entry instances from Parcels
+    public static final Parcelable.Creator<Entry> CREATOR = new Parcelable.Creator<Entry>() {
+        public Entry createFromParcel(Parcel in) {
+            return new Entry(in);
+        }
+
+        public Entry[] newArray(int size) {
+            return new Entry[size];
+        }
+    };
 }
