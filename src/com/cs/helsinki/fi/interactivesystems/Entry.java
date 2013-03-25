@@ -178,6 +178,23 @@ public class Entry implements Parcelable {
 	public String getEducation() {
 		return education;
 	}
+	
+	public String getSearchString() {
+	    StringBuilder builder = new StringBuilder();
+	    builder.append(job);
+	    builder.append(tasks);
+	    builder.append(requirements);
+	    builder.append(training);
+	    builder.append(country);
+	    builder.append(locality);
+	    builder.append(address);
+	    builder.append(employer);
+	    builder.append(experience);
+	    builder.append(moreInfo);
+	    builder.append(education);
+	    
+	    return builder.toString();
+	}
 
 	// not needed but must be overridden
     @Override

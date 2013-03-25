@@ -3,5 +3,6 @@
 	<color name="header_bg">#AA000000</color>
 	<color name="footer_bg">#EEBBBBBB</color>
 	<color name="bookmark_bg">#44000000</color>
+	<color name="grey">#666666</color>
 	<drawable name="pressed_orange">#88ff9600</drawable>
 </resources>

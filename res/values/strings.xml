@@ -8,5 +8,7 @@
     <string name="bookmark_empty_list">There are no bookmarks</string>
     <string name="clear_bookmarks">Clear bookmarks</string>
     <string name="exit_bookmark_list">Return to map</string>
+    <string name="bookmark_icon_description">Bookmark icon</string>
+    <string name="search_text">Search</string>
 
 </resources>

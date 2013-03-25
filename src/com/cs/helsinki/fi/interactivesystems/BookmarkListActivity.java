@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -115,6 +116,7 @@ public class BookmarkListActivity extends ListActivity {
         public View getView(final int position, View convertView, ViewGroup parent) {
             View row = convertView;
             BookmarkHolder holder = null;
+            final Entry entry = mData.get(position); // get the correct entry
             
             if(row == null) { // row hasn't been created yet
                 LayoutInflater inflater = ((Activity) mContext).getLayoutInflater();
@@ -124,18 +126,20 @@ public class BookmarkListActivity extends ListActivity {
                 // every time we need them
                 holder = new BookmarkHolder();
                 holder.icon = (ImageView) row.findViewById(R.id.map_icon);
+                holder.info = (LinearLayout) row.findViewById(R.id.info);
                 holder.title = (TextView) row.findViewById(R.id.title);
+                holder.address = (TextView) row.findViewById(R.id.address);
+                
+                holder.title.setText(entry.getJob());
+                holder.address.setText(entry.getAddress());
                 
                 row.setTag(holder);
             } else {
                 holder = (BookmarkHolder) row.getTag(); // get subviews
             }
             
-            final Entry entry = mData.get(position); // get the correct entry
-            holder.title.setText(entry.getJob());
-            
-            // set OnClickListener for the title textview
-            holder.title.setOnClickListener(new OnClickListener() {
+            // set OnClickListener for the title+address textviews
+            holder.info.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     // open browser with the specified url and entry id
@@ -162,6 +166,8 @@ public class BookmarkListActivity extends ListActivity {
     
     static class BookmarkHolder {
         ImageView icon;
+        LinearLayout info;
         TextView title;
+        TextView address;
     }
 }

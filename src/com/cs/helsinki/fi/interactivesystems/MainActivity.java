@@ -10,6 +10,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import android.app.Dialog;
@@ -27,13 +28,17 @@ import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Base64;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
@@ -123,8 +128,27 @@ public class MainActivity extends FragmentActivity implements LocationListener {
                     showMarkerInfoWindow(marker, true, false);
                     return true;
                 }
-			    
 			});
+			
+			
+			EditText searchBar = (EditText) findViewById(R.id.search_bar);
+		    searchBar.addTextChangedListener(new TextWatcher() {
+		        @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+		            String[] params = s.toString().split("\\s*,\\s*");
+                    filterMarkers(params);
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    // TODO Auto-generated method stub
+                }
+
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                    // TODO Auto-generated method stub
+                }
+            });
 
 			mLocManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 			Criteria criteria = new Criteria();
@@ -245,15 +269,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
                         if(entry.getId().equals(deleteId)) { // found the correct marker/entry
                             // replace old marker with changed status
                             Marker marker = item.getKey();
-                            mMarkerMap.remove(marker);
-                            Marker newMarker = createMarker(entry, marker.getPosition());
-                            
-                            // if the marker is selected, update its infoWindow
-                            if(mMarkerInfoWindowVisible && mActiveMarker.getId().equals(marker.getId()) ) {
-                                updateMarkerInfo(newMarker);
-                            }
-                            
-                            marker.remove(); // remove the old marker
+                            replaceMarker(entry, marker);
                             break;
                         }
                     }
@@ -274,6 +290,42 @@ public class MainActivity extends FragmentActivity implements LocationListener {
         }
     }
 
+    
+    private void filterMarkers(String... filterParams) {
+        if(filterParams == null || filterParams.length == 0) {
+            for(Map.Entry<Marker, Entry> item : mMarkerMap.entrySet()) {
+                Marker marker = item.getKey();
+                marker.setVisible(true);
+            }
+        } else {
+            for(Map.Entry<Marker, Entry> item : mMarkerMap.entrySet()) {
+                Entry entry = item.getValue();
+                String searchStr = entry.getSearchString().toLowerCase(Locale.getDefault());
+                
+                Marker marker = item.getKey();
+                marker.setVisible(true);
+                
+                // cumulative filtering of markers: each param decreases the amount of visible markers                
+                for(String param : filterParams) {
+                    if(marker.isVisible() == true) {
+                        param.trim();
+                        param.toLowerCase(Locale.getDefault());
+                        
+                        // param is not found from search string: hide marker from map
+                        if(searchStr.indexOf(param) == -1) {
+                            marker.setVisible(false);
+                            
+                            // incase marker has an active info window, remove it as well
+                            if(mMarkerInfoWindowVisible && mActiveMarker.getId().equals(marker.getId())) {
+                                deleteMarkerInfoWindow();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     /**
      * Save bookmark (entry id) to the internal storage
      * 
@@ -413,6 +465,28 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 		return marker;
 	}
 	
+	/**
+     * Replace marker with changed status
+     * 
+     * @param entry, marker
+     */
+	private Marker replaceMarker(Entry entry, Marker marker) {
+        mMarkerMap.remove(marker);
+        Marker newMarker = createMarker(entry, marker.getPosition());
+        
+        // if the marker is selected, update its infoWindow
+        if(mMarkerInfoWindowVisible && mActiveMarker.getId().equals(marker.getId()) ) {
+            updateMarkerInfo(newMarker);
+            newMarker.setVisible(true); //marker with active info window is always visible
+        } else {
+            newMarker.setVisible(marker.isVisible()); // inherit visibility from old marker
+        }
+        
+        marker.remove(); // remove the old marker from map
+        
+        return newMarker;
+	}
+	
 	private BitmapDescriptor getDefaultMarkerIcon() {
 	    return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE);
 	}
@@ -426,6 +500,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
      * 
      */
     private void showMarkerInfoWindow(Marker marker, boolean updateMapCameraPosition, final boolean zoom) {
+        marker.setVisible(true);
         if(mMarkerInfoWindowVisible) {
             updateMarkerInfo(marker); // active marker has changed, update info
         } else {
@@ -457,6 +532,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
      * @param marker
      */
     private void createMarkerInfoWindow(Marker marker) {
+        mMarkerInfoWindowVisible = true;
         mActiveMarker = marker;
         
         // create info window for the marker
@@ -481,8 +557,6 @@ public class MainActivity extends FragmentActivity implements LocationListener {
         
         // show info window on screen
         mMarkerInfoWindow.showAtLocation(mapView, Gravity.NO_GRAVITY, x, y);
-        
-        mMarkerInfoWindowVisible = true;
     }
     
     /**
@@ -522,10 +596,12 @@ public class MainActivity extends FragmentActivity implements LocationListener {
      */
     private void setInfoWindowData(View infoWindow, final Marker marker) {
         String titleText = "";
+        String addressText = "";
         final Entry entry = (Entry) mMarkerMap.get(marker);
         
         if(entry != null) {
             titleText = entry.getJob();
+            addressText = entry.getAddress();
             
             ImageView bookmark = (ImageView) infoWindow.findViewById(R.id.bookmark);
             
@@ -544,10 +620,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
                     }
                     
                     // replace old marker with changed status
-                    mMarkerMap.remove(marker);
-                    Marker newMarker = createMarker(entry, marker.getPosition());
-                    updateMarkerInfo(newMarker);
-                    marker.remove();
+                    replaceMarker(entry, marker);
                 }
             });
         }
@@ -555,7 +628,13 @@ public class MainActivity extends FragmentActivity implements LocationListener {
         // update info window title
         TextView title = (TextView) infoWindow.findViewById(R.id.title);
         title.setText(titleText);
-        title.setOnClickListener(new View.OnClickListener() {
+        
+        // update info window address
+        TextView address = (TextView) infoWindow.findViewById(R.id.address);
+        address.setText(addressText);
+        
+        LinearLayout info = (LinearLayout) infoWindow.findViewById(R.id.info);
+        info.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // open browser with the specified url and entry id

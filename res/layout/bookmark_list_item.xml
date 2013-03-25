@@ -22,11 +22,31 @@
         android:layout_marginTop="5dip"
         android:layout_marginBottom="5dip"/>
     
-	<TextView
-		android:id="@+id/title"
-		android:layout_width="match_parent"
-		android:layout_height="match_parent"
-		android:padding="10dip"
-		style="@android:style/TextAppearance.Medium.Inverse"
-        android:background="@drawable/selected_state"/>	
+    <LinearLayout
+        android:id="@+id/info"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" 
+        android:orientation="vertical"
+        android:background="@drawable/selected_state">
+    
+	    <TextView
+	        android:id="@+id/title"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:paddingLeft="10dip"
+	        android:paddingRight="10dip"
+	        android:paddingTop="10dip"
+	        style="@android:style/TextAppearance.Medium.Inverse"/> 
+        
+        <TextView 
+            android:id="@+id/address"
+            style="@android:style/TextAppearance.Small.Inverse"
+            android:textColor="@color/grey"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="10dip"
+            android:paddingRight="10dip"
+            android:paddingBottom="10dip"/>
+    </LinearLayout>
+   
 </LinearLayout>
