@@ -44,7 +44,7 @@ public class XMLParser {
 	}
 
 	private List<Entry> readFeed(XmlPullParser parser) throws XmlPullParserException, IOException {
-		List<Entry> entries = new ArrayList();
+		List<Entry> entries = new ArrayList<Entry>();
 
 		parser.require(XmlPullParser.START_TAG, ns, "toopakkumised");
 		while (parser.next() != XmlPullParser.END_TAG) {

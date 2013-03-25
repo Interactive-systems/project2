@@ -55,7 +55,6 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 public class MainActivity extends FragmentActivity implements LocationListener {
-
 	GoogleMap googleMap;
 	MarkerOptions markerOptions;
 	ProgressDialog mProgressDialog;
@@ -309,15 +308,15 @@ public class MainActivity extends FragmentActivity implements LocationListener {
         return settings.getBoolean(id, false);
     }
 	   
-	private String getSavedCoordinates(String address) {
+	private String getSavedCoordinates(String entryId) {
 		SharedPreferences settings = getSharedPreferences(COORDS_PREFS, 0);
-		String coordinates = settings.getString(address, "");
+		String coordinates = settings.getString(entryId, "");
 		return coordinates;
 	}
 
-	private boolean checkIfCoordinatesHaveBeenSaved(String address) {
+	private boolean checkIfCoordinatesHaveBeenSaved(String entryId) {
 		SharedPreferences settings = getSharedPreferences(COORDS_PREFS, 0);
-		String coordinates = settings.getString(address, "");
+		String coordinates = settings.getString(entryId, "");
 
 		if (coordinates == null || coordinates.equals("")) {
 			return false;
@@ -334,16 +333,16 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 	 * @param address
 	 */
 	
-	private void saveCoordinates(Address address) {
+	private void saveCoordinates(String entryId, Address address) {
 		SharedPreferences settings = getSharedPreferences(COORDS_PREFS, 0);
 		SharedPreferences.Editor editor = settings.edit();
 
 		//save the coordinates as a string using comma as the separator
 		String coordinateString = "" + address.getLatitude() + "," + address.getLongitude();
 		//save the address info
-		String addressString = address.getAddressLine(0) + ", " + address.getSubAdminArea() + ", " + address.getThoroughfare();
+		//String addressString = address.getAddressLine(0) + ", " + address.getSubAdminArea() + ", " + address.getThoroughfare();
 
-		editor.putString(addressString, coordinateString);
+		editor.putString(entryId, coordinateString);
 
 		editor.commit();
 	}
@@ -614,7 +613,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 			if (input != null) {
 				input.close();
 			}
-
+			
 			//get the geocodes for the addresses
 			if (list != null && list.size() > 0) {
 				for (int i = 0; i < list.size(); i++) {
@@ -622,8 +621,8 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 					Entry e = list.get(i);
 					if (e != null && e.getAddress() != null) {
 						//if the coordinates have been saved to internal storage already, fetch them from there
-						if (checkIfCoordinatesHaveBeenSaved(e.getAddress())) {
-							createMarker(e, getSavedCoordinates(e.getAddress()));
+						if (checkIfCoordinatesHaveBeenSaved(e.getId())) {
+							createMarker(e, getSavedCoordinates(e.getId()));
 						}
 						else { //no coordinates found, so we need to use geocoding
 							new getGeocodeTask().execute(e);
@@ -676,7 +675,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 				LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
 
 				//save the address info to internal storage
-				saveCoordinates(address);
+				saveCoordinates(mEntry.getId(), address);
 				
 				/*String text = String.format("%s, %s",
 						address.getMaxAddressLineIndex() > 0 ? address.getAddressLine(0) : "",
