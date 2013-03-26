@@ -78,6 +78,8 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 	private static final String FILE_NAME = "database.xml";
 	public static final String COORDS_PREFS = "com.cs.helsinki.fi.interactivesystems.saved_coords";
 	public static final String BOOKMARK_PREFS = "com.cs.helsinki.fi.interactivesystems.bookmark";
+	
+	private int mMapTop;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -97,6 +99,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 
 			//set up the map component
 			SupportMapFragment fm = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+           
 			googleMap = fm.getMap();
 			googleMap.setMyLocationEnabled(true); //the user's location will be tracked
 
@@ -149,6 +152,10 @@ public class MainActivity extends FragmentActivity implements LocationListener {
                     // TODO Auto-generated method stub
                 }
             });
+		    
+		    // measure map top position on the layout (it's right bellow search bar ==> top == search bar height)
+		    searchBar.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+		    mMapTop = searchBar.getMeasuredHeight();
 
 			mLocManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 			Criteria criteria = new Criteria();
@@ -553,7 +560,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
         Projection projection = googleMap.getProjection();
         Point screenPosition = projection.toScreenLocation(mapPosition);
         int x = screenPosition.x - mMarkerInfoWindow.getWidth() / 2;
-        int y = screenPosition.y - mMarkerInfoWindow.getHeight();
+        int y = mMapTop + screenPosition.y - mMarkerInfoWindow.getHeight();
         
         // show info window on screen
         mMarkerInfoWindow.showAtLocation(mapView, Gravity.NO_GRAVITY, x, y);
@@ -656,7 +663,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
             Projection projection = googleMap.getProjection();
             Point screenPosition = projection.toScreenLocation(mapPosition);
             int x = screenPosition.x - mMarkerInfoWindow.getWidth() / 2;
-            int y = screenPosition.y - mMarkerInfoWindow.getHeight();
+            int y = mMapTop + screenPosition.y - mMarkerInfoWindow.getHeight();
             
             // set info window position
             mMarkerInfoWindow.update(x, y, -1, -1);
