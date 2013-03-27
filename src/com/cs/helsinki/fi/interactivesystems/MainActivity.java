@@ -25,22 +25,27 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.media.AudioManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Vibrator;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.TextToSpeech.OnInitListener;
 import android.support.v4.app.FragmentActivity;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Base64;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
@@ -59,7 +64,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-public class MainActivity extends FragmentActivity implements LocationListener {
+public class MainActivity extends FragmentActivity implements LocationListener, OnInitListener {
 	GoogleMap googleMap;
 	MarkerOptions markerOptions;
 	ProgressDialog mProgressDialog;
@@ -81,6 +86,9 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 	
 	private int mMapTop;
 
+	private TextToSpeech mTalker;
+	private boolean mTalkerReady = false;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -133,27 +141,20 @@ public class MainActivity extends FragmentActivity implements LocationListener {
                 }
 			});
 			
+			final EditText searchText = (EditText) findViewById(R.id.search_text);
 			
-			EditText searchBar = (EditText) findViewById(R.id.search_bar);
-		    searchBar.addTextChangedListener(new TextWatcher() {
-		        @Override
-                public void onTextChanged(CharSequence s, int start, int before, int count) {
-		            String[] params = s.toString().split("\\s*,\\s*");
+			Button searchButton = (Button) findViewById(R.id.search_button);
+		    searchButton.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    String[] params = searchText.getText().toString().split("\\s*,\\s*");
                     filterMarkers(params);
                 }
-
-                @Override
-                public void afterTextChanged(Editable s) {
-                    // TODO Auto-generated method stub
-                }
-
-                @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                    // TODO Auto-generated method stub
-                }
-            });
+		        
+		    });
 		    
 		    // measure map top position on the layout (it's right bellow search bar ==> top == search bar height)
+		    LinearLayout searchBar = (LinearLayout) findViewById(R.id.search_bar);
 		    searchBar.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
 		    mMapTop = searchBar.getMeasuredHeight();
 
@@ -161,6 +162,8 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 			Criteria criteria = new Criteria();
 			String provider = mLocManager.getBestProvider(criteria, true);
 			Location location = mLocManager.getLastKnownLocation(provider);
+
+			mTalker = new TextToSpeech(this, this);
 
 			if (location != null) {
 				double latitude = location.getLatitude();
@@ -217,7 +220,11 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 	@Override
 	public void onDestroy() {
 		mLocManager.removeUpdates(this);
-
+		if(mTalker != null) {
+		    mTalker.stop();
+		    mTalker.shutdown();
+		}
+		
 		super.onDestroy();
 	}
 	
@@ -305,6 +312,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
                 marker.setVisible(true);
             }
         } else {
+            int resultCount = mMarkerMap.size();
             for(Map.Entry<Marker, Entry> item : mMarkerMap.entrySet()) {
                 Entry entry = item.getValue();
                 String searchStr = entry.getSearchString().toLowerCase(Locale.getDefault());
@@ -321,7 +329,7 @@ public class MainActivity extends FragmentActivity implements LocationListener {
                         // param is not found from search string: hide marker from map
                         if(searchStr.indexOf(param) == -1) {
                             marker.setVisible(false);
-                            
+                            resultCount--;
                             // incase marker has an active info window, remove it as well
                             if(mMarkerInfoWindowVisible && mActiveMarker.getId().equals(marker.getId())) {
                                 deleteMarkerInfoWindow();
@@ -329,6 +337,24 @@ public class MainActivity extends FragmentActivity implements LocationListener {
                         }
                     }
                 }
+            }
+            String resultStr = resultCount + " search results";
+            int ringerMode = ((AudioManager)getSystemService(Context.AUDIO_SERVICE)).getRingerMode();
+            
+            switch(ringerMode) {
+            case AudioManager.RINGER_MODE_NORMAL:
+                speak(resultStr); // tell user how many search results were found (with TextToSpeach)
+            case AudioManager.RINGER_MODE_VIBRATE: // if ringer mode is on normal or on vibrate
+                if(resultCount == 0) { // if no results, do 1 long vibrate 
+                    ((Vibrator) getSystemService(Context.VIBRATOR_SERVICE)).vibrate(1000);
+                } else { // results were found, vibrate 2 times
+                    long[] pattern = {0, 300, 100, 300};
+                    ((Vibrator) getSystemService(Context.VIBRATOR_SERVICE)).vibrate(pattern, -1);
+                }
+            default: // always show toast with the result count
+                Toast searchToast = Toast.makeText(this, resultStr, Toast.LENGTH_SHORT);
+                searchToast.setGravity(Gravity.TOP|Gravity.CENTER, 0, 100);
+                searchToast.show();              
             }
         }
     }
@@ -833,5 +859,20 @@ public class MainActivity extends FragmentActivity implements LocationListener {
 
 			startXmlParsing();
 		}
-	} 
+	}
+
+    @Override
+    public void onInit(int status) {
+        if(status == TextToSpeech.SUCCESS) { // successfully inited TextToSpeech engine
+            mTalkerReady = true;
+        } else {
+            Toast.makeText(this, "TTS Initilization Failed", Toast.LENGTH_LONG).show();
+        }
+    }
+    
+    public void speak(String str) {
+        if(mTalkerReady) {
+            mTalker.speak(str, TextToSpeech.QUEUE_FLUSH, null);
+        }
+    }
 }
