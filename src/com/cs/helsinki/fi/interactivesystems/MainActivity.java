@@ -18,6 +18,8 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Point;
 import android.location.Address;
 import android.location.Criteria;
@@ -29,6 +31,7 @@ import android.media.AudioManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Vibrator;
+import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.TextToSpeech.OnInitListener;
 import android.support.v4.app.FragmentActivity;
@@ -39,8 +42,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
@@ -79,6 +82,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	
     private static final int MENU_ITEM_SHOW_BOOKMARKS = 1;
     private static final int BOOKMARK_LIST_ACTIVITY = 1;
+    private static final int VOICE_SEARCH_ACTIVITY = 2;
 	 
 	private static final String FILE_NAME = "database.xml";
 	public static final String COORDS_PREFS = "com.cs.helsinki.fi.interactivesystems.saved_coords";
@@ -88,6 +92,11 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
 	private TextToSpeech mTalker;
 	private boolean mTalkerReady = false;
+	
+	private LinearLayout mSearchBar;
+	private EditText mSearchText;
+	private ImageButton mSearchButton;
+	private ImageButton mSpeakButton;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -141,29 +150,48 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                 }
 			});
 			
-			final EditText searchText = (EditText) findViewById(R.id.search_text);
+			mSearchText = (EditText) findViewById(R.id.search_text);
 			
-			Button searchButton = (Button) findViewById(R.id.search_button);
-		    searchButton.setOnClickListener(new OnClickListener() {
+			mSearchButton = (ImageButton) findViewById(R.id.search_button);
+		    mSearchButton.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    String[] params = searchText.getText().toString().split("\\s*,\\s*");
-                    filterMarkers(params);
+                    // parse search params from searchBar EditText text
+                    String[] params = parseSearchParams(mSearchText.getText().toString());
+                    filterMarkers(params); // search
                 }
 		        
 		    });
 		    
 		    // measure map top position on the layout (it's right bellow search bar ==> top == search bar height)
-		    LinearLayout searchBar = (LinearLayout) findViewById(R.id.search_bar);
-		    searchBar.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-		    mMapTop = searchBar.getMeasuredHeight();
+		    mSearchBar = (LinearLayout) findViewById(R.id.search_bar);
+		    mSearchBar.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+		    mMapTop = mSearchBar.getMeasuredHeight();
 
+		    // init voice search
+		    mSpeakButton = (ImageButton) findViewById(R.id.speak_button);
+		    PackageManager pm = getPackageManager();
+	        List<ResolveInfo> activities = pm.queryIntentActivities(new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH), 0);
+	        if (activities.size() == 0) { // disable speak button if speech recognizer is not found
+	            mSpeakButton.setEnabled(false);
+	        } else { // add OnClickListener to speak button
+	            mSpeakButton.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                        startActivityForResult(intent, VOICE_SEARCH_ACTIVITY); // start speech recognition widget
+                    }
+                });
+	        }
+		    
+		    
 			mLocManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 			Criteria criteria = new Criteria();
 			String provider = mLocManager.getBestProvider(criteria, true);
 			Location location = mLocManager.getLastKnownLocation(provider);
 
-			mTalker = new TextToSpeech(this, this);
+			mTalker = new TextToSpeech(this, this); // init text to speech widget
 
 			if (location != null) {
 				double latitude = location.getLatitude();
@@ -264,7 +292,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode == BOOKMARK_LIST_ACTIVITY) { // receive request from BookmarkListActivity
+        switch(requestCode) {
+        case BOOKMARK_LIST_ACTIVITY: // receive request from BookmarkListActivity
             if(data != null) {
                 Bundle extras = data.getExtras();
                 
@@ -301,7 +330,23 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                     }                     
                 }
             }
+            break;
+        case VOICE_SEARCH_ACTIVITY: // receive request from speech recognition widget
+            if(resultCode == RESULT_OK) {
+                // populate wordsList with the String values the speech recognition engine thought it heard
+                ArrayList<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                
+                // if matches were found, filter markers based on the first suggestion from the matches list
+                if(matches != null && matches.size() > 0) {
+                    String searchStr = matches.get(0); // get first suggestion
+                    mSearchText.setText(searchStr); // set search bar EditText text to match the suggested text
+                    String[] params = parseSearchParams(searchStr); // parse search params
+                    filterMarkers(params); // search
+                }
+            }
         }
+        
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     
@@ -323,7 +368,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                 // cumulative filtering of markers: each param decreases the amount of visible markers                
                 for(String param : filterParams) {
                     if(marker.isVisible() == true) {
-                        param.trim();
                         param.toLowerCase(Locale.getDefault());
                         
                         // param is not found from search string: hide marker from map
@@ -870,9 +914,16 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         }
     }
     
+    // convert text to speech
     public void speak(String str) {
         if(mTalkerReady) {
             mTalker.speak(str, TextToSpeech.QUEUE_FLUSH, null);
         }
+    }
+    
+    // parse search params to string array from the given string
+    public String[] parseSearchParams(String str) {
+        str.trim().replace(" ", ",");
+        return str.split("\\s*,\\s*");
     }
 }
